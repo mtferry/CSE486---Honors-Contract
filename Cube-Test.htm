@@ -1,0 +1,60 @@
+<script src="Game3DSjs-r2.js"></script>
+<script>
+$3DS.defineModel('plane',[0,0,0,50,-1,50],[0,0,0,0,0,50,50,0,0,'#00FF00',50,0,50,'#FF0000']);
+$3DS.defineModel('protoCube',[0,0,0,50,-50,50],[0,0,0,0,0,50,50,0,0,'#00FF00',50,0,50,'#FF0000',50,-50,50,'#0000FF',0,0,50,'#FFFF00',
+                                                0,-50,50,'#800080',0,0,0,'#FF6600',0,-50,0,'#00FFC1',50,0,0,'#0D6E8C',50,-50,0,'#16ACDA',
+                                                50,-50,50,'#F41E98',0,-50,0,'#FFFFFF',0,-50,50,'#000000']);
+
+
+window.onload = function(){
+    var screen = $3DS.createScreen(0,0);
+    var scene = $3DS.createScene();
+    
+	var cube = $3DS.createModel(scene,'protoCube',30,60,0);
+    var plane = $3DS.createModel(scene,'plane',-30,60,000);
+    
+  // Throttle speed on non-3DS devices to prevent the game from running too fast
+	var timeBetweenFrames = $3DS.is3DS() ? 0 : 100;
+    
+	$3DS.setWireframeRenderInterval(scene,screen,2);
+    var disp = $3DS.createText(':',10,10,15,'lime');
+    
+	var mode = 'Move-XY';
+	
+	setInterval(function(){
+        disp.update('Mode: '+mode+'    FPS:'+Math.floor($3DS.renderFPS)+'    Touching:'+cube.collidesWith(plane));
+        
+		switch(mode){
+			case 'Move-XY':
+			if($3DS.keyState.left){ cube.move(-5,0,0); }
+			if($3DS.keyState.right){ cube.move(5,0,0); }
+			if($3DS.keyState.up){ cube.move(0,0,5); }
+			if($3DS.keyState.down){ cube.move(0,0,-5); }
+			if($3DS.keyState.A){ mode = 'Move-Z'; }
+			break;
+			
+			case 'Move-Z':
+			if($3DS.keyState.up){ cube.move(0,-5,0); }
+			if($3DS.keyState.down){ cube.move(0,5,0); }
+			if($3DS.keyState.A){ mode = 'Resize'; }
+			break;
+			
+			case 'Resize':
+			if($3DS.keyState.up){ cube.resize(.1); }
+			if($3DS.keyState.down){ cube.resize(-.1); }
+			if($3DS.keyState.A){ mode = 'Rotate-XY'; }
+			break;
+			
+			case 'Rotate-XY':
+			if($3DS.keyState.left){ cube.rotate(0,0,.1); }
+			if($3DS.keyState.right){ cube.rotate(0,0,-.1); }
+			if($3DS.keyState.up){ cube.rotate(0,.1,0); }
+			if($3DS.keyState.down){ cube.rotate(0,-.1,0); }
+			if($3DS.keyState.A){ mode = 'Move-XY'; }
+			break;
+		}
+        
+    },timeBetweenFrames);
+}
+</script>
+<body bgcolor='#2F4F4F'>

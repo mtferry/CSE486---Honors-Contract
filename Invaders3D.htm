@@ -1,0 +1,110 @@
+<script src="Game3DSjs-r2.js"></script>
+<script>
+$3DS.defineModel('pillar',[0],[-5,150,0, 0,150,5, 0,-25,0,'#80CCE6',5,150,0,'#80CCE6',-5,150,0,'#CCCCE0']);
+$3DS.defineModel('playerShip',[5],[-5,0,0, 0,-5,0, 0,0,10, '#006600', 5,0,0, '#009933', -5,0,0, '#33CC33', 0,-5,0,'#66FF33']);
+$3DS.defineModel('enemyShip',[5],[-5,5,0,-5,-5,0,0,0,5,'#CC3300',5,-5,0,'#669999',5,5,0,'#CC3300']);
+$3DS.defineModel('bulletGood',[3],[-5,0,0,5,0,0,0,-5,0,'#0099CC']);
+$3DS.defineModel('bulletBad',[3],[-5,0,0,5,0,0,0,5,0,'#FF0000']);
+
+window.onload = function(){
+    alert('-=Invaders 3D=-\nControls:\nD-Pad: Move\nA: Shoot\nSurvive as long as possible.');
+    var screen = $3DS.createScreen(0,0);
+    var scene = $3DS.createScene();
+    var p1 = $3DS.createModel(scene,'pillar',-125,0,999);
+    var p2 = $3DS.createModel(scene,'pillar',125,0,999);
+    var player = $3DS.createModel(scene,'playerShip',0,0,-70);
+    $3DS.setWireframeRenderInterval(scene,screen,2);
+    var disp = $3DS.createText('Score:',10,10,50,'lime');
+        
+	// Throttle speed on non-3DS devices to prevent the game from running too fast
+	var timeBetweenFrames = $3DS.is3DS() ? 0 : 100;
+		
+    var goodBullets = [],
+        badBullets = [],
+        enemies = [],
+        score = 0,
+        wave = 0;
+    
+    var ivl = setInterval(function(){
+        disp.update('Score: '+score+'  Wave:'+wave+'  FPS:'+Math.floor($3DS.renderFPS));
+        
+		// Move the pillars
+		if(p1.zPos < -30){ p1.set(-125,0,999); p2.set(125,0,999); }
+        p1.move(0,0,-10);
+        p2.move(0,0,-10);
+        
+        if($3DS.keyState.down && player.yPos>-30){ player.move(0,-5,0); }
+        if($3DS.keyState.up && player.yPos<30){ player.move(0,5,0); }
+        if($3DS.keyState.left && player.xPos>-50){ player.move(-5,0,0); }
+        if($3DS.keyState.right && player.xPos<50){ player.move(5,0,0); }
+        if($3DS.keyState.A && goodBullets.length<5){
+            goodBullets.push($3DS.createModel(scene,'bulletGood',player.xPos,player.yPos,player.zPos));
+        }
+        
+		// Move the players bullets and check if they hit an enemy
+        for(i in goodBullets){
+            goodBullets[i].move(0,0,10);
+            for(k in enemies){
+                if(goodBullets[i].collidesWith(enemies[k])){
+                    $3DS.removeModel(scene,enemies[k]);
+                    enemies.splice(k,1);
+                    score++;
+                }
+            }
+            if(goodBullets[i].zPos > 100){
+                $3DS.removeModel(scene,goodBullets[i]);
+                goodBullets.splice(i,1);
+            }
+        }
+        
+		// Move the enemies and fire a bullet if they see the player
+        for(i in enemies){
+            var ox = enemies[i].xPos, oy = enemies[i].yPos, oz = enemies[i].zPos;
+            enemies[i].move($3DS.randInt(-10,10),$3DS.randInt(-10,10),$3DS.randInt(-2,2));
+            if(enemies[i].xPos<-40 || enemies[i].xPos>40 || enemies[i].yPos<-20 || enemies[i].yPos>20 || enemies[i].zPos<-35 || enemies[i].zPos>-25){
+                enemies[i].set(ox,oy,oz);
+            }
+            if(Math.abs(enemies[i].xPos-player.xPos)<10 && Math.abs(enemies[i].yPos-player.yPos)<10 && badBullets.length<3){
+                badBullets.push($3DS.createModel(scene,'bulletBad',enemies[i].xPos,enemies[i].yPos,enemies[i].zPos));
+            }
+        }
+        
+		// Move the enemies' bullets and check if they hit the player
+        for(i in badBullets){
+            badBullets[i].move(0,0,-5);
+            if(badBullets[i].collidesWith(player)){
+                clearInterval(ivl);
+                var HighScore = $3DS.getCookie('Invaders3D_HighScore') || 0;
+                if(score > HighScore){
+                    HighScore = score;
+                    $3DS.setCookie('Invaders3D_HighScore',score);
+                }
+                if(confirm('-=Game Over=-\nHigh Score: '+HighScore+'\nScore: '+score+'\nPlay again?')){
+                    $3DS.clearWireframeRenderInterval(screen);
+                    $3DS.remove(screen);
+                    $3DS.remove(disp);
+                    setTimeout(function(){ window.onload(); },10);
+                }
+                return;
+            }
+            if(badBullets[i].zPos < player.zPos){
+                $3DS.removeModel(scene,badBullets[i]);
+                badBullets.splice(i,1);
+            }
+        }
+        
+		// Create a new wave of enemies if the old enemies were defeated
+        if(enemies.length<1){
+            var numEnemies = $3DS.randInt(2,5);
+            while(numEnemies>0){
+                var enemy = $3DS.createModel(scene,'enemyShip',$3DS.randInt(-40,40),$3DS.randInt(-20,20),-30);
+                enemies.push(enemy);
+                numEnemies--;
+            }
+            wave++;
+        }
+        
+    },timeBetweenFrames);
+}
+</script>
+<body bgcolor='#2F4F4F'>

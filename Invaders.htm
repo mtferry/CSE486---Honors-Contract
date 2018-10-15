@@ -1,0 +1,103 @@
+<script src="Game3DSjs-r2.js"></script>
+<script>
+window.onload = function(){
+    alert('-=Invaders=-\nControls:\nD-Pad: Move\nA: Shoot\nSurvive as long as possible.');
+    var player = $3DS.createSprite('images/ship.png',0,0, 100, 50);
+    player.set(($3DS.pageWidth/2)-player.width,$3DS.pageHeight-50);
+    var goodBullets = [],
+        badBullets = []
+        enemies = [],
+        wave = 0
+        score = 0;
+        
+    var disp = $3DS.createText('',10,10,50,'lime');
+        
+    var ivl = setInterval(function(){
+        disp.update('Score: '+score+'     Wave: '+wave);
+    
+        if($3DS.keyState.left && player.xPos>30){
+            player.move(-30,0);
+        }
+                
+        if($3DS.keyState.right && (player.xPos+player.width+30)<$3DS.pageWidth){
+            player.move(30,0); 
+        }
+        
+        if($3DS.keyState.A && goodBullets.length<3){
+            var bullet = $3DS.createSprite('images/bulletGood.png',player.xPos+(player.width/2)-5,player.yPos-20,25,25);
+            goodBullets.push(bullet);
+        }
+        
+		// Move player's bullets and check if they hit an enemy
+        for(i in goodBullets){
+            goodBullets[i].move(0,-50);
+            if(goodBullets[i].yPos < 0){
+                $3DS.remove(goodBullets[i]);
+                goodBullets.splice(i,1);
+            }
+            for(k in enemies){
+                if(goodBullets[i] && goodBullets[i].collidesWith(enemies[k])){
+                    $3DS.remove(enemies[k]);
+                    enemies.splice(k,1);
+                    score++;
+                }
+            }
+        }
+        
+		// Move the enemies and have them fire a bullet if they see the player
+        for(i in enemies){
+            var ox = enemies[i].xPos,
+                oy = enemies[i].yPos;
+            enemies[i].move($3DS.randInt(-30,30),$3DS.randInt(-30,30));
+            if(enemies[i].xPos<0 || enemies[i].yPos<0 || enemies[i].xPos>($3DS.pageWidth-enemies[i].width) || enemies[i].yPos>($3DS.pageHeight-200)){
+                enemies[i].set(ox,oy);
+            }
+            if(Math.abs(enemies[i].xPos-player.xPos)<50 && badBullets.length < 3){
+                var bullet = $3DS.createSprite('images/bulletBad.png',enemies[i].xPos+50,enemies[i].yPos+50,25,25);
+                badBullets.push(bullet);
+            }
+        }
+        
+		// Move the enemies' bullets and check if they hit the player
+        for(i in badBullets){
+            badBullets[i].move(0,30);
+            if(badBullets[i].yPos > $3DS.pageHeight){
+                $3DS.remove(badBullets[i]);
+                badBullets.splice(i,1);
+            }
+            
+			if(badBullets[i] && badBullets[i].collidesWith(player)){
+                clearInterval(ivl);
+                var HighScore = $3DS.getCookie('Invaders_HighScore') || 0;
+                if(score > HighScore){
+                    $3DS.setCookie('Invaders_HighScore',score);
+                    HighScore = score;
+                }
+                if(confirm('-=Game Over=-\nYour Score: '+score+'\nHigh Score: '+HighScore+'\nPlay again?')){
+                    // Remove all sprites
+					while(document.querySelector('img')){
+                        $3DS.remove(document.querySelector('img'));
+                    }
+                    $3DS.remove(disp); // Remove score display
+                    setTimeout(function(){window.onload();},0);
+                }
+                return;
+            }
+        }
+        
+		// Create a new wave of enemies if the old enemies were defeated
+        if(enemies.length < 1){
+            document.body.style.backgroundSize = 'cover';
+            var numEnemies = $3DS.randInt(2,4);
+            while(numEnemies > 0){
+                var enemy = $3DS.createSprite('images/enemy.png',$3DS.randInt(200,$3DS.pageWidth-200),$3DS.randInt(0,$3DS.pageHeight-200));
+                enemies.push(enemy);
+                numEnemies--;
+            }
+            wave++;
+        }
+        
+    },100);
+}
+</script>
+<body bgcolor='black'>
